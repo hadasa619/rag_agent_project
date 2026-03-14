@@ -1,50 +1,42 @@
 import os
 import ssl
 import urllib3
+import asyncio
 import gradio as gr
 from dotenv import load_dotenv
 
-# מעקף SSL לנטפרי
+# ייבוא ה-Workflow שבנינו
+from workflow import RAGAgentWorkflow
+
+# מעקף SSL
 ssl._create_default_https_context = ssl._create_unverified_context
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-from llama_index.core import StorageContext, load_index_from_storage, Settings
-from llama_index.embeddings.cohere import CohereEmbedding
-from llama_index.llms.cohere import Cohere
-
 load_dotenv()
 
-api_key = os.getenv("COHERE_API_KEY")
+# יצירת מופע של ה-Workflow
+agent = RAGAgentWorkflow(timeout=60)
 
-# הגדרת המודלים ב-Settings
-Settings.embed_model = CohereEmbedding(
-    model_name="embed-multilingual-v3.0",
-    api_key=api_key
-)
-
-# שימוש במודל command-r-08-2024 (או נסי "command" אם זה נכשל)
-# שימוש במודל החי והמעודכן ביותר לפי הטבלה שלך
-Settings.llm = Cohere(
-    model="command-a-03-2025", 
-    api_key=api_key
-)
-
-# טעינת האינדקס
-if not os.path.exists("./storage"):
-    print("❌ שגיאה: תיקיית storage לא נמצאה!")
-else:
-    storage_context = StorageContext.from_defaults(persist_dir="./storage")
-    index = load_index_from_storage(storage_context)
-    query_engine = index.as_query_engine()
-
-def ask_bot(question, history):
+async def ask_agent(message, history):
+    """
+    פונקציית העזר שתקרא ל-Workflow בצורה אסינכרונית
+    """
     try:
-        response = query_engine.query(question)
-        return str(response)
+        # הרצת ה-Workflow עם השאילתה מהממשק
+        result = await agent.run(query=message)
+        return str(result)
     except Exception as e:
-        return f"שגיאה: {e}"
+        return f"❌ שגיאה בלתי צפויה: {str(e)}"
 
-demo = gr.ChatInterface(fn=ask_bot, title="סוכן ה-RAG שלי 🤖")
+# יצירת ממשק Gradio מותאם ל-Async
+demo = gr.ChatInterface(
+    fn=ask_agent,
+    title="סוכן RAG מבוסס אירועים (Event-Driven) 🤖",
+    description="צפי בטרמינל כדי לראות את שלבי הוולידציה, השליפה והיצירה בזמן אמת.",
+    examples=["מהו בסיס הנתונים של הפרויקט?", "מהן הנחיות ה-RTL?", "טסט"],
+    cache_examples=False,
+)
 
 if __name__ == "__main__":
+    print("🚀 הממשק עולה (מבוסס Workflow)...")
     demo.launch()
