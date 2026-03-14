@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Workflow: Steps & Events</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            width: 95%;
+            max-width: 1000px;
+        }
+        h1 { color: #1a237e; text-align: center; }
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .box { width: 15px; height: 15px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>ארכיטקטורת Workflow: Steps & Events</h1>
+        
+        <div class="legend">
+            <div class="legend-item"><div class="box" style="background:#e3f2fd; border:1px solid #1565c0;"></div> <b>Step</b> (פונקציה)</div>
+            <div class="legend-item"><div class="box" style="background:#fff3e0; border:1px dashed #e65100;"></div> <b>Event</b> (הודעה/טריגר)</div>
+        </div>
+
+        <div class="mermaid">
+            graph TD
+                %% הגדרות סגנון
+                classDef stepNode fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+                classDef startNode fill:#cfel,stroke:#2e7d32,stroke-width:2px;
+                classDef eventLabel font-style:italic,font-weight:bold,fill:#fff3e0;
+
+                %% תזרים
+                Start([StartEvent]):::startNode --> |Query| StepRouter[<b>Step: router</b>]:::stepNode
+                
+                StepRouter --> |RoutingEvent| StepHandle[<b>Step: handle_routing</b>]:::stepNode
+                
+                StepHandle --> |StructuredRetrievalEvent| StepJSON[<b>Step: retrieve_from_json</b>]:::stepNode
+                StepHandle --> |RetrievalEvent| StepSemantic[<b>Step: retrieve_semantic</b>]:::stepNode
+                
+                StepJSON --> |GenerationEvent| StepGen[<b>Step: generate_response</b>]:::stepNode
+                StepSemantic --> |GenerationEvent| StepGen
+                
+                StepGen --> |StopEvent| End([Result]):::startNode
+
+                %% עיצוב חצים (Events)
+                linkStyle 0,1,2,3,4,5,6 stroke:#e65100,stroke-width:2px,stroke-dasharray: 5 5;
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'neutral',
+            flowchart: { useMaxWidth: true, htmlLabels:
